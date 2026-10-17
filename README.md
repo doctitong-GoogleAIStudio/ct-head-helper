@@ -45,7 +45,7 @@ PWAs install only over HTTPS. Host this folder on any static host (GitHub Pages,
 | `js/dicom.js` | Minimal DICOM reader |
 | `js/imaging.js` | Series grouping, HU windowing, montages |
 | `js/ai.js` | Claude API calls, system prompt, report schema |
-| `sw.js`, `manifest.webmanifest`, `icons/` | PWA install + offline shell |
+| `sw.js`, `manifest.json`, `icons/` | PWA install + offline shell |
 | `tools/make_assets.py` | Regenerates PNG icons and the synthetic phantom |
 
 Bump `VERSION` in `sw.js` when you change shell files, so installed copies refresh.

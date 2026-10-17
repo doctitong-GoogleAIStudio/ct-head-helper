@@ -1,5 +1,5 @@
 // App-shell cache so the viewer opens offline. API calls always go to the network.
-const VERSION = 'ct-head-helper-v1';
+const VERSION = 'ct-head-helper-v2';
 const SHELL = [
   './',
   'index.html',
@@ -8,7 +8,7 @@ const SHELL = [
   'js/imaging.js',
   'js/dicom.js',
   'js/ai.js',
-  'manifest.webmanifest',
+  'manifest.json',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
