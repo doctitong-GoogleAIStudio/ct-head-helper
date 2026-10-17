@@ -1,0 +1,25 @@
+{
+  "name": "CT Head Helper",
+  "short_name": "CT Head",
+  "description": "AI-assisted interpretation of non-contrast head CT (decision support only).",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": ["medical", "health"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": { "application/dicom": [".dcm"], "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"] }
+    }
+  ]
+}

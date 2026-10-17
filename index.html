@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CT Head Helper</title>
+  <meta name="description" content="AI-assisted interpretation of non-contrast head CT. Decision support only.">
+  <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CT Head">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon.svg" alt="" width="32" height="32">
+      <div>
+        <h1>CT Head Helper</h1>
+        <p class="sub">AI head CT interpretation</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="installBtn" class="btn ghost small" hidden>Install</button>
+      <button id="historyBtn" class="btn ghost small" aria-label="Past reports">History</button>
+      <button id="settingsBtn" class="btn ghost small" aria-label="Settings">Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="keyBanner" class="banner warn" hidden>
+      No API key yet. <button class="link" data-open="settings">Add your Anthropic API key</button> to run interpretations.
+    </div>
+
+    <section class="card" id="uploadCard">
+      <h2><span class="step">1</span> Load the study</h2>
+      <div id="dropZone" class="dropzone" tabindex="0">
+        <p class="dz-title">Drop DICOM files, a series folder, or PNG/JPG slices here</p>
+        <p class="muted">Uncompressed DICOM (.dcm or no extension), multi-frame supported. Files stay on this device until you press Interpret.</p>
+        <div class="dz-buttons">
+          <label class="btn">Choose files<input id="fileInput" type="file" multiple hidden></label>
+          <label class="btn">Choose folder<input id="folderInput" type="file" webkitdirectory directory multiple hidden></label>
+          <label class="btn">Take photo<input id="cameraInput" type="file" accept="image/*" capture="environment" hidden></label>
+        </div>
+      </div>
+      <div id="loadStatus" class="muted small-text" aria-live="polite"></div>
+      <ul id="skippedList" class="skipped" hidden></ul>
+    </section>
+
+    <section class="card" id="viewerCard" hidden>
+      <div class="card-head">
+        <h2><span class="step">2</span> Review series</h2>
+        <button id="clearBtn" class="btn ghost small">Clear study</button>
+      </div>
+      <div id="seriesTabs" class="tabs" role="tablist"></div>
+      <div class="viewer">
+        <div class="canvas-wrap"><canvas id="viewCanvas"></canvas><span id="sliceLabel" class="slice-label"></span></div>
+        <div class="viewer-controls">
+          <input id="sliceSlider" type="range" min="1" max="1" value="1" aria-label="Slice">
+          <div id="windowButtons" class="seg" role="group" aria-label="Window preset"></div>
+        </div>
+      </div>
+      <details class="prep" id="prepDetails">
+        <summary>Preprocessing pipeline</summary>
+        <ol id="prepLog" class="prep-log"></ol>
+      </details>
+    </section>
+
+    <section class="card" id="analyzeCard" hidden>
+      <h2><span class="step">3</span> Interpret</h2>
+      <label class="field">
+        <span>Clinical history (optional)</span>
+        <textarea id="history" rows="2" placeholder="e.g. 68M, sudden left weakness 2 h ago, on warfarin"></textarea>
+      </label>
+      <div class="options">
+        <label class="check"><input type="checkbox" id="extraWindows" checked> Add subdural and bone windows</label>
+        <label class="check"><input type="checkbox" id="cnnCompare"> Simulated CNN comparison (ResNet / DenseNet / EfficientNet / Inception)</label>
+      </div>
+      <p id="sendSummary" class="muted small-text"></p>
+      <div class="row">
+        <button id="analyzeBtn" class="btn primary big">Interpret CT</button>
+        <button id="cancelBtn" class="btn ghost" hidden>Cancel</button>
+      </div>
+      <div id="progress" class="progress" hidden><span class="spinner"></span><span id="progressText">Preparing images…</span></div>
+      <div id="errorBox" class="banner error" hidden></div>
+    </section>
+
+    <section class="card report" id="reportCard" hidden>
+      <div class="card-head">
+        <h2>Report</h2>
+        <div class="row tight">
+          <button id="copyBtn" class="btn ghost small">Copy</button>
+          <button id="printBtn" class="btn ghost small">Print</button>
+        </div>
+      </div>
+      <div id="reportBody"></div>
+      <div class="chat" id="chat">
+        <div id="chatLog"></div>
+        <form id="chatForm" class="chat-form">
+          <input id="chatInput" type="text" placeholder="Ask a follow-up, e.g. “compare ResNet vs DenseNet” or “where exactly is the bleed?”" autocomplete="off">
+          <button class="btn primary" type="submit">Ask</button>
+        </form>
+      </div>
+    </section>
+
+    <p class="disclaimer">Decision support only. Not a medical device and not a substitute for a radiologist's formal report. Verify every finding against the original images. Images are sent to Anthropic's API when you press Interpret; DICOM patient identifiers are never read or sent.</p>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-body" id="settingsForm">
+      <h2>Settings</h2>
+      <label class="field">
+        <span>Anthropic API key</span>
+        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+        <small class="muted">Stored only in this browser. Get one at console.anthropic.com.</small>
+      </label>
+      <label class="field">
+        <span>Model</span>
+        <select id="modelSelect"></select>
+      </label>
+      <label class="field">
+        <span>Max slices sent per series</span>
+        <select id="maxSlices">
+          <option value="64">64 (cheaper)</option>
+          <option value="128">128</option>
+          <option value="192" selected>192 (default)</option>
+          <option value="320">320 (thin-slice studies)</option>
+        </select>
+        <small class="muted">Longer series are evenly sampled so the whole head is still covered.</small>
+      </label>
+      <p id="keyTest" class="muted small-text"></p>
+      <div class="row end">
+        <button type="button" id="testKeyBtn" class="btn ghost">Test key</button>
+        <button type="button" id="forgetKeyBtn" class="btn ghost">Forget key</button>
+        <button value="save" class="btn primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="historyDialog">
+    <div class="dialog-body">
+      <div class="card-head">
+        <h2>Past reports</h2>
+        <button class="btn ghost small" id="closeHistory">Close</button>
+      </div>
+      <p class="muted small-text">Saved on this device only (report text, no images).</p>
+      <ul id="historyList" class="history-list"></ul>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
